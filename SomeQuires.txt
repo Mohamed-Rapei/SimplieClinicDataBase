@@ -1,0 +1,97 @@
+
+
+-----------------------
+/*
+
+
+**التحدي الأول:**
+احسب إجمالي المبالغ (Total Revenue) اللي دخلت العيادة لكل طريقة دفع (Payment Method)، بشرط إن الموعد يكون مكتمل ('Completed' فقط). ورتب النتيجة تنازلياً من طريقة الدفع الأكثر دخلاً للأقل.
+
+**التحدي الثاني:**
+استخرج بيانات المرضى من محافظة "قنا" اللي الدكاترة كتبولهم روشتات مدتها أطول من 10 أيام. (المطلوب عرضه: اسم المريض، رقم تليفونه، اسم الدكتور، واسم الدواء).
+
+**التحدي الثالث:**
+ابحث عن الدكاترة اللي عندهم أكثر من موعد واحد تم إلغاؤه ('Cancelled'). (المطلوب عرضه: اسم الدكتور، تخصصه، وعدد المواعيد الملغية لكل دكتور منهم).
+
+**التحدي الرابع:**
+استخرج بيانات المرضى (الاسم وتاريخ الميلاد) اللي دفعوا مبلغ أكبر من 400 جنيه باستخدام طريقة دفع 'InstaPay' أو 'Vodafone Cash'، بشرط إن التشخيص الخاص بيهم في السجل الطبي لا يساوي 'Pending Checkup'.
+
+**التحدي الخامس (تقرير شركات التأمين):**
+قم بإنشاء تقرير يعرض كل تخصص طبي (Doctor Specilization) وإجمالي المبالغ المدفوعة له عن طريق التأمين ('Insurance').
+بشرط: أن تكون المواعيد مكتملة ('Completed')، وأن يكون المرضى من كبار السن (مواليد ما قبل سنة 1990). ورتب النتيجة تنازلياً من التخصص الأكثر دخلاً للأقل.
+
+*/
+
+
+
+
+------------
+
+
+SELECT 
+    Payment.PaymentMethod,
+    SUM(Payment.PaymentAmountPaid) AS TotalRevenue
+FROM Payment
+ JOIN Appointment
+    ON Payment.AppointmentID = Appointment.AppointmentID
+GROUP BY Payment.PaymentMethod
+ORDER BY TotalRevenue DESC;
+
+
+---------------------
+
+select PatientName,PatientAddress,varcharDateOfBirth,Doctor.DoctorName,PatientPhoneNumber,MedicationName from Patient
+Join Appointment 
+ON Patient.PatientID=Appointment.PatientID
+Join MedicalRecord 
+ON MedicalRecord.AppointmentID=Appointment.AppointmentID
+Join Prescription
+ON MedicalRecord.MedicalRecordID=Prescription.MedicalRecordID
+JOIN Doctor 
+ON Appointment.DoctorID = Doctor.DoctorID
+where (DATEDIFF(day,Prescription.StartDate,Prescription.EndDate)>10)And
+Patient.PatientAddress like '%Qena%';
+
+--------------------------------------------------------
+
+
+select Doctor.DoctorName,Doctor.DoctorSpecilization ,Count(Appointment.AppointmentID)AS NumberOfCanceld from Doctor
+Join Appointment
+ON Doctor.DoctorID=Appointment.DoctorID
+where Appointment.AppointmentStatus='Cancelled'
+group by  Doctor.DoctorName,Doctor.DoctorSpecilization
+having count(Appointment.AppointmentID)>=1;
+
+
+
+-------------------------------------------------------------
+select Patient.PatientName,Patient.varcharDateOfBirth from patient
+Join Appointment 
+ON Appointment.PatientID=Patient.PatientID
+Join Payment 
+ON Payment.AppointmentID=Appointment.AppointmentID
+JOIN MedicalRecord
+ON MedicalRecord.AppointmentID=Appointment.AppointmentID
+WHERE Payment.PaymentAmountPaid>400 
+AND (Payment.PaymentMethod='InstaPay' OR Payment.PaymentMethod='Vodafone Cash')
+AND MedicalRecord.Diagnosis !='Pending Checkup';
+
+
+
+-----------------------------------------------------------
+
+
+SELECT Doctor.DoctorSpecilization,sum(Payment.PaymentAmountPaid) AS TotalMoney from Doctor 
+Join Appointment
+ON Appointment.DoctorID=Doctor.DoctorID
+Join Payment
+ON Payment.AppointmentID=Appointment.AppointmentID
+Join Patient
+ON Patient.PatientID=Appointment.PatientID
+where Payment.PaymentMethod='Insurance'
+
+And Appointment.AppointmentStatus='Completed'
+And Patient.varcharDateOfBirth<'1990-01-01'
+group by Doctor.DoctorSpecilization
+ORDER BY TotalMoney DESC;
+
